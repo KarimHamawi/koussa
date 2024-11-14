@@ -1,0 +1,42 @@
+SELECT 
+    A.CUSTOMER_NO AS CIF, 
+    B.BRANCH_CODE AS BRANCH, 
+    A.CUSTOMER_NAME1 AS NAME, 
+    C.CCY AS CURRENCY, 
+
+    -- 402SA-402SF Account information
+    SA.ACCOUNT_NO AS "S Account", 
+    SA.Acy_Avl_Bal AS "Balance of S account",
+    
+    -- 402 current account information
+    CF.ACCOUNT_NO AS "402 Current account", 
+    CF.Acy_Avl_Bal AS "Balance of 402 Current Account"
+
+FROM 
+    STTM_CUSTOMER A   
+
+-- Join to get the 402SA-402SF (Public Sector) accounts
+INNER JOIN 
+    STTM_CUST_ACCOUNT SA ON A.CUSTOMER_NO = SA.CUST_NO 
+    AND SA.account_class IN ('402SA', '402SF')
+
+-- Join to get the 402 Current accounts
+INNER JOIN 
+    STTM_CUST_ACCOUNT CF ON A.CUSTOMER_NO = CF.CUST_NO 
+    AND CF.account_class = '40200'
+
+-- Branch information
+INNER JOIN 
+    STTMS_BRANCH B ON B.BRANCH_CODE = SA.BRANCH_CODE   
+
+WHERE 
+    -- Ensure the 402SA-402SF accounts have overdrawn or zero balance
+    (SA.Acy_Avl_Bal <= 0)
+
+    -- Ensure the 402 Current account has an overdrawn or zero balance as well
+    AND CF.Acy_Avl_Bal <= 0
+
+    -- Only select active customer and account records
+    AND A.record_stat = 'O'
+    AND SA.record_stat = 'O'
+    AND CF.record_stat = 'O';
