@@ -1,0 +1,90 @@
+SELECT 
+    c.citizen_id AS CIF,
+    
+    -- Active Account
+    NVL(
+        (SELECT 'YES' 
+         FROM STTM_CUST_ACCOUNT@BMLB_LNK a 
+         WHERE a.record_stat = 'O' 
+         AND a.cust_no = cu.customer_no
+         FETCH FIRST 1 ROWS ONLY), 
+        'NO') AS HAS_OPEN_ACCOUNT,
+
+    -- Deceased Status
+    NVL(sc.deceased, 'NO') AS DECEASED,
+    
+    -- POA Status
+    NVL(
+        (SELECT 'YES' 
+         FROM STTM_CUST_POA_CUSTOM@BMLB_LNK p 
+         WHERE p.customer_no = cu.customer_no
+         FETCH FIRST 1 ROWS ONLY), 
+        'NO') AS HAS_POA,
+
+    -- POA Agent Status
+    NVL(
+        (SELECT 'YES' 
+         FROM STTM_CUST_POA_CUSTOM@BMLB_LNK p 
+         WHERE p.POA_AGENT_ID = cu.customer_no
+         FETCH FIRST 1 ROWS ONLY), 
+        'NO') AS IS_POA_AGENT,
+
+    -- POA Status
+    p.poa_status AS POA_STATUS,
+
+    -- Proxy Type
+    p.proxy_type AS PROXY_TYPE,
+
+    -- Proxy Issue Date
+    p.poa_issue_date AS PROXY_ISSUE_DATE,
+
+    -- POA Validity
+    p.poa_validity AS POA_VALIDITY
+
+FROM CITIZEN_TABLE c
+
+JOIN STTM_CUST_ACCOUNT@BMLB_LNK ca
+    ON c.citizen_id = ca.citizen_id
+    AND ca.record_stat = 'O'
+
+JOIN STTM_CUST_POA_CUSTOM@BMLB_LNK p
+    ON ca.customer_no = p.customer_no
+
+JOIN STTM_CUSTOMER sc
+    ON ca.customer_no = sc.customer_no
+    AND sc.record_stat = 'O'
+
+WHERE EXISTS (
+    -- Ensure that the agent's principal account is linked
+    SELECT 1 
+    FROM STTM_CUST_ACCOUNT@BMLB_LNK ca2
+    WHERE ca2.customer_no = ca.customer_no
+    AND ca2.record_stat = 'O'
+)
+AND EXISTS (
+    -- Ensure the agent is active in STTM_CUST_ACCOUNT
+    SELECT 1 
+    FROM STTM_CUST_ACCOUNT@BMLB_LNK ca2
+    WHERE ca2.cust_no = cu.customer_no
+    AND ca2.record_stat = 'O'
+)
+
+ORDER BY c.citizen_id;
+
+
+SELECT
+    ct.citizen_id AS Principal_CIF,
+    nvl((SELECT DISTINCT 'YES' FROM sttm_cust_account@BMLB_LNK aca
+         WHERE aca.record_stat = 'O'
+         AND aca.cust_no = cu.customer_no), 'NO') AS Has_Active_Account,
+    cu.deceased AS Deceased,
+    pc.poa_stat AS PoA_Status,
+    pc.proxy_type AS Proxy_Type,
+    pc.poa_issue_date AS Proxy_Issue_Date,
+    pc.poa_validity AS PoA_Validity
+FROM
+    citizen_table ct
+INNER JOIN sttm_customer cu ON ct.citizen_id = cu.customer_no
+INNER JOIN sttm_cust_poa_custom pc ON cu.customer_no = pc.customer_no
+WHERE
+    cu.record_stat = 'O';
