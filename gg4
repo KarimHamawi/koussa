@@ -1,0 +1,28 @@
+we need this information:
+attached cifs are related to agent on proxies.
+need a report to extract the linked accountholder (principal) CIF.
+then need below fields related to the principal only:
+• Has active account (yes/no)
+• Deceased (yes/no)
+• Poa status
+• Proxy type
+• Proxy issue date
+• Poa validity
+
+
+DECEASED is in STTM_CUSTOMER
+this is for has active account: nvl( ( select distinct 'YES' from sttm_cust_ACCOUNT@BMLB_LNK where record_stat='O' and cust_no=cu.customer_no),'NO')  HAS_OPEN_ACCOUNT,
+these for poa:
+nvl((select distinct 'YES' from STTM_CUST_POA_CUSTOM@BMLB_LNK  where CUSTOMER_NO = cu.customer_no) ,'NO')has_POA,
+nvl((select distinct 'YES' from STTM_CUST_POA_CUSTOM@BMLB_LNK  where POA_AGENT_ID = cu.customer_no) ,'NO')IS_POA_AGENT,
+POA_STAT is in STTM_CUST_POA_CUSTOM
+poa_validity is in STTM_CUST_POA_CUSTOM
+PROXY_TYPE is in STTM_CUST_POA_CUSTOM
+poa_issue_date is in STTM_CUST_POA_CUSTOM (maybe can use for proxy issue date)
+
+STTM_CUST_POA_CUSTOM has customer_no prim key, same for STTM_CUSTOMER, same for STTM_CUST_POA_CUSTOM
+finally, the cifs theyre talking about are in this table:
+CITIZEN_TABLE with cols seq and citizen_id
+also, add these conditions to the query:
+STTM_CUSTOMER.record_stat = 'O'
+STTM_CUST_ACCOUNT.record_stat = 'O'
