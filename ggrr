@@ -1,0 +1,42 @@
+Need all
+ZERO BALANCE - AMOUNT DUE
+ZERO BALANCE - ZERO AMOUNT DUE
+NEGATIVE BALANCE - AMOUNT DUE
+NEGATVE BALANCE - ZERO AMOUNT DUE
+
+01402 AND 02402 for clients with SP accounts.
+
+
+
+SELECT
+    A.CUSTOMER_NO AS CIF,
+    A.full_name AS NAME,
+    SA.CUST_AC_NO AS ""S Account"",
+    SA.Acy_Avl_Bal AS ""Balance of S account"",
+    CF.CUST_AC_NO AS ""402 Current account"",
+    CF.Acy_Avl_Bal AS ""Balance of 402 Current Account"",
+    nvl((select sum(amount_due - amount_paid) from cstb_auto_settle_block where account_no = cf.cust_ac_no),0) Amount_Due_current,
+     nvl((select sum(amount_due - amount_paid) from cstb_auto_settle_block where account_no = sa.cust_ac_no),0) Amount_Due_sa
+
+FROM
+    STTM_CUSTOMER A
+
+INNER JOIN
+    STTM_CUST_ACCOUNT SA ON A.CUSTOMER_NO = SA.CUST_NO
+    AND SA.account_class IN ('402SA', '402SF')
+
+INNER JOIN
+    STTM_CUST_ACCOUNT CF ON A.CUSTOMER_NO = CF.CUST_NO
+    AND CF.account_class = '40200'
+
+INNER JOIN
+    STTMS_BRANCH B ON B.BRANCH_CODE = SA.BRANCH_CODE
+
+WHERE
+    (SA.Acy_Avl_Bal <= 0)
+
+    AND CF.Acy_Avl_Bal <= 0
+    AND A.record_stat = 'O'
+    AND SA.record_stat = 'O'
+    AND CF.record_stat = 'O'"
+
